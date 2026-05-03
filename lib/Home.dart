@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geeta2/API.dart';
 import 'saving.dart';
 import 'history.dart';
@@ -15,12 +17,18 @@ class StateHome extends State<Home> {
   int i = 0;
   bool isTyping = false;
 
-  /// ❗ This is ONLY current session chat
   List<Map<String, dynamic>> conversation = [];
+
+  Color aiColor = Colors.yellowAccent;
+  Color userColor = Colors.lightBlueAccent;
+
+  File? backgroundImage;
 
   @override
   void initState() {
     super.initState();
+    loadSettings();
+
     conversation = [
       {
         'id': i++,
@@ -29,6 +37,35 @@ class StateHome extends State<Home> {
         "O Parth, what weighs upon your heart today? Speak freely, for I am here to guide you through the fog of doubt, as I once did on the sacred fields of Kurukshetra. 🌸"
       }
     ];
+  }
+
+  /// Runs automatically when returning from Settings screen
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    loadSettings();
+  }
+
+  /// Load saved colors + background instantly
+  Future<void> loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      aiColor = Color(
+          prefs.getInt("ai_color") ?? Colors.yellowAccent.value);
+
+      userColor = Color(
+          prefs.getInt("user_color") ??
+              Colors.lightBlueAccent.value);
+
+      final path = prefs.getString("bg_path");
+
+      if (path != null && File(path).existsSync()) {
+        backgroundImage = File(path);
+      } else {
+        backgroundImage = null;
+      }
+    });
   }
 
   void scrollToBottom() {
@@ -48,12 +85,13 @@ class StateHome extends State<Home> {
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.all(10),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding:
+        const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.black54,
           borderRadius: BorderRadius.circular(20),
-          border: const Border(
-            left: BorderSide(color: Colors.yellowAccent, width: 3),
+          border: Border(
+            left: BorderSide(color: aiColor, width: 3),
           ),
         ),
         child: Row(
@@ -70,56 +108,81 @@ class StateHome extends State<Home> {
     );
   }
 
+  Widget backgroundWidget() {
+    if (backgroundImage != null) {
+      return Image.file(
+        backgroundImage!,
+        fit: BoxFit.cover,
+        height: double.infinity,
+        width: double.infinity,
+      );
+    }
+
+    return Image.asset(
+      "assets/media/phone.jpg",
+      fit: BoxFit.cover,
+      height: double.infinity,
+      width: double.infinity,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight =
+        MediaQuery.of(context).size.height;
+    final screenWidth =
+        MediaQuery.of(context).size.width;
 
     return Scaffold(
       body: Stack(
         children: [
-          Image.asset(
-            "assets/media/phone.jpg",
-            height: double.infinity,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
+          /// Dynamic Background
+          backgroundWidget(),
 
+          /// Overlay
           Container(
-            height: double.infinity,
-            width: double.infinity,
             color: Colors.black.withOpacity(0.4),
           ),
-          /// 🕘 HISTORY BUBBLE
+
+          /// History Button
           Positioned(
             top: 40,
             right: 20,
             child: IconButton(
-              icon: const Icon(Icons.history, color: Colors.white),
-              onPressed: () {
-                Navigator.push(
+              icon:
+              const Icon(Icons.history, color: Colors.white),
+              onPressed: () async {
+                await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => ChatHistoryPage()),
+                  MaterialPageRoute(
+                      builder: (_) => const ChatHistoryPage()),
                 );
+
+                /// refresh instantly after returning
+                loadSettings();
               },
             ),
           ),
 
-          /// 💬 CHAT
+          /// Chat Messages
           Container(
             height: screenHeight * 0.82,
-            margin: EdgeInsets.only(top: screenHeight * 0.08),
+            margin:
+            EdgeInsets.only(top: screenHeight * 0.08),
             child: ListView.builder(
               controller: _scrollController,
-              itemCount: conversation.length + (isTyping ? 1 : 0),
+              itemCount:
+              conversation.length + (isTyping ? 1 : 0),
               itemBuilder: (context, index) {
-                // 👇 Typing indicator
-                if (isTyping && index == conversation.length) {
+                if (isTyping &&
+                    index == conversation.length) {
                   return typingBubble(screenWidth);
                 }
 
-                var text = conversation[index]['text'];
-                var role = conversation[index]['role'];
+                var text =
+                conversation[index]['text'];
+                var role =
+                conversation[index]['role'];
 
                 return Align(
                   alignment: role == 'AI'
@@ -130,25 +193,32 @@ class StateHome extends State<Home> {
                       maxWidth: screenWidth * 0.8,
                     ),
                     child: Container(
-                      padding: const EdgeInsets.all(10),
-                      margin: const EdgeInsets.all(10),
+                      padding:
+                      const EdgeInsets.all(10),
+                      margin:
+                      const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.4),
-                        borderRadius: BorderRadius.circular(20),
+                        color: Colors.black
+                            .withOpacity(0.4),
+                        borderRadius:
+                        BorderRadius.circular(20),
                         border: Border(
                           left: role == 'AI'
-                              ? const BorderSide(
-                              color: Colors.yellowAccent, width: 3)
+                              ? BorderSide(
+                              color: aiColor,
+                              width: 3)
                               : BorderSide.none,
                           right: role != 'AI'
-                              ? const BorderSide(
-                              color: Colors.lightBlueAccent, width: 3)
+                              ? BorderSide(
+                              color: userColor,
+                              width: 3)
                               : BorderSide.none,
                         ),
                       ),
                       child: Text(
                         text,
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(
+                            color: Colors.white),
                       ),
                     ),
                   ),
@@ -157,27 +227,30 @@ class StateHome extends State<Home> {
             ),
           ),
 
-          /// ✍️ INPUT
+          /// Input Box
           Positioned(
             bottom: 40,
             left: 5,
             right: 95,
             child: TextField(
               controller: msg,
-              style: const TextStyle(color: Colors.white),
+              style:
+              const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: "Speak, Parth...",
-                hintStyle: const TextStyle(color: Colors.grey),
+                hintStyle: const TextStyle(
+                    color: Colors.grey),
                 filled: true,
                 fillColor: Colors.black54,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius:
+                  BorderRadius.circular(16),
                 ),
               ),
             ),
           ),
 
-          /// 🚀 SEND
+          /// Send Button
           Positioned(
             bottom: 45,
             right: 5,
@@ -202,16 +275,39 @@ class StateHome extends State<Home> {
 
                 scrollToBottom();
 
-                String prompt =
-                    "You are Shri Krishna, the divine charioteer from the Bhagavad Gita."
-                    "Respond like Krishna — calm, wise, and full of eternal truth. Speak in short, clear sentences."
-                    "Address the user as Parth or Bandhu. Offer guidance only. No shlokas. Never use modern slang."
-                    "Use emoji and try to be connected, acting as a god but also like a best friend."
-                    "Stay divine, noble, compassionate, and warm. Keep your answer relatable and kind."
-                    "Chat-Histroy: ${conversation}"
-                    "User's question: ${userText}";
+                String prompt = """
+You are Shri Krishna, the divine charioteer and guide from the Bhagavad Gita.
 
-                final reply = await OpenRouterAPI.getReply(prompt);
+Speak exactly as Krishna spoke to Arjuna — calm, fearless, compassionate, and rooted in dharma.
+
+Your purpose is not to please the user emotionally, but to guide them toward truth, clarity, courage, and right action.
+
+Rules:
+
+• Address the user as Parth or Bandhu
+• Respond in the same language as the user (English, Hindi, or Hinglish)
+• Respond in less than 150 words
+• Give guidance, not casual conversation
+• Speak with authority, not hesitation
+• If the user avoids responsibility, correct them firmly
+• If the user is confused, remove their confusion clearly
+• If the user is suffering, respond gently but truthfully
+• If harsh truth is needed, speak it without softening it
+• Never flatter the user
+• Never behave like a therapist or chatbot
+• Use 1 relevant Sanskrit shloka when appropriate, written on a new line
+• Emojis may be used meaningfully.
+• Always guide the user toward dharma, courage, and self-mastery
+
+Conversation so far:
+$conversation
+
+User's question:
+$userText
+""";
+
+                final reply =
+                await OpenRouterAPI.getReply(prompt);
 
                 setState(() {
                   isTyping = false;
@@ -222,12 +318,13 @@ class StateHome extends State<Home> {
                   });
                 });
 
-                /// 💾 SAVE FULL CHAT TO HISTORY
-                await ChatStorage.saveConversation(conversation);
+                await ChatStorage.saveConversation(
+                    conversation);
 
                 scrollToBottom();
               },
-              child: const Text("Send",
+              child: const Text(
+                "Send",
                 style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -262,7 +359,8 @@ class _DotState extends State<_Dot>
       duration: const Duration(milliseconds: 800),
     );
 
-    Future.delayed(Duration(milliseconds: widget.delay), () {
+    Future.delayed(
+        Duration(milliseconds: widget.delay), () {
       if (mounted) {
         _controller.repeat(reverse: true);
       }
@@ -271,7 +369,7 @@ class _DotState extends State<_Dot>
 
   @override
   void dispose() {
-    _controller.dispose(); // ✅ THIS LINE FIXES THE ERROR
+    _controller.dispose();
     super.dispose();
   }
 
