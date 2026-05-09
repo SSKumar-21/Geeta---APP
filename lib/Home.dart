@@ -307,7 +307,7 @@ $userText
 """;
 
                 final reply =
-                await OpenRouterAPI.getReply(prompt);
+                await GroqAPI.getReply(prompt);
 
                 setState(() {
                   isTyping = false;

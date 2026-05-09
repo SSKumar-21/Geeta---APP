@@ -22,7 +22,7 @@ class _SplashState extends State<Splash> {
       await MusicService().play(); // 👈 ensures start
     });
 
-    Future.delayed(const Duration(seconds: 7), () {
+    Future.delayed(const Duration(seconds: 3), () {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => Home()),
