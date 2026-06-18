@@ -60,7 +60,7 @@ class GroqAPI {
   // =====================================
   // INSERT YOUR GROQ API KEY HERE
   // =====================================
-  static const String _apiKey = "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";
+  static const String _apiKey = "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";
 
   // =====================================
   // GROQ API URL
